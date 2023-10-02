@@ -17,7 +17,7 @@ vector<tuple<string, int, int>> load_dictionary() {
     string board, row;
     int move, score;
     
-    ifstream file("dictionary.txt");
+    ifstream file("4x4_dictionary.txt");
     if (file.is_open()) {
         while (getline(file, row)) {
             if (file >> board >> move >> score) {
