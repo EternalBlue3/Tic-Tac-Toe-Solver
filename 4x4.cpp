@@ -116,11 +116,11 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta, m
     
     // Terminal node checks
     if (check_win(gameboard, player)) {
-        return 100 + depth;
+        return 1000 + depth;
     }
     
     if (check_win(gameboard, -player)) {
-        return -100 - depth;
+        return -1000 - depth;
     }
     
     if (find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
