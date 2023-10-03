@@ -192,7 +192,6 @@ int main() {
     int moves_made = 0;
     vector<tuple<string, int, int>> dictionary = load_dictionary();
     
-    // Rest of code
     cout << "Would you like to be player 1 or 2 (enter 'exit' to quit): ";
     while (true) {
         cin >> input;
