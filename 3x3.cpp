@@ -6,23 +6,20 @@
 #include <cstdlib>
 #include <algorithm>
 #include <chrono>
+#include <tuple>
 
 using namespace std;
 
+const vector<vector<int>> win_conditions = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {0, 3, 6}, {1, 4, 7}, {2, 5, 8}, {0, 4, 8}, {2, 4, 6}};
+
 void display_board(const vector<int>& gameboard) {
     for (int i = 0; i < 9; ++i) {
-        // Draw "O" for player one, "X" for player two, and " " for blank spaces
-        if (gameboard[i] == 1) {
-            cout << "O";
-        } else if (gameboard[i] == -1) {
-            cout << "X";
-        } else {
-            cout << " ";
-        }
+        char symbol = (gameboard[i] == 1) ? 'O' : ((gameboard[i] == -1) ? 'X' : ' ');
+        cout << symbol;
         if ((i + 1) % 3 == 0) {
             cout << endl;
             if (i < 8) {
-                cout << "---------" << endl; // Horizontal line to separate rows
+                cout << "---------" << endl;
             }
         } else {
             cout << " | ";
@@ -31,8 +28,6 @@ void display_board(const vector<int>& gameboard) {
 }
 
 bool check_win(const vector<int>& gameboard, const int& player) {
-    vector<vector<int>> win_conditions = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {0, 3, 6}, {1, 4, 7}, {2, 5, 8}, {0, 4, 8}, {2, 4, 6}};
-
     for (const auto& condition : win_conditions) {
         if (gameboard[condition[0]] == player && gameboard[condition[1]] == player && gameboard[condition[2]] == player) {
             return true;
@@ -94,7 +89,7 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta) {
     return best_score;
 }
 
-int solve(vector<int> gameboard, int player, int depth) {
+tuple<int,int> solve(vector<int> gameboard, int player, int depth) {
     int best_move;
     int score = -100;
     int best_score = -100;
@@ -114,15 +109,13 @@ int solve(vector<int> gameboard, int player, int depth) {
         alpha = max(alpha, score);
     }
     
-    return best_move;
+    return make_tuple(best_move,best_score);
 }
 
-// Human player is 1
-// AI player is -1
 int main() {
     vector<int> gameboard(9, 0);
     string input;
-    int move, turn;
+    int move, turn, score;
     
     cout << "Would you like to be player 1 or 2 (enter 'exit' to quit): ";
     while (true) {
@@ -186,10 +179,14 @@ int main() {
             
             // Get the AI move
             auto start_time = std::chrono::high_resolution_clock::now(); // Start measuring time
-            move = solve(gameboard, -1, 9);
+            tuple<int,int> result = solve(gameboard, -1, 9);
+            move = get<0>(result);
+            score = get<1>(result);
+            
             gameboard[move] = -1;
             auto end_time = std::chrono::high_resolution_clock::now();  // Stop measuring time
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+            cout << "AI evaluation: " << score << endl;
             cout << "AI move took " << duration.count() << " milliseconds to calculate." << endl << endl; // Show time to calculate move
 
             if (check_win(gameboard, -1)) {
