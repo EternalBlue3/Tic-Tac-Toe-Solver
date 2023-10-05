@@ -17,7 +17,7 @@ vector<tuple<string, int, int>> load_dictionary() {
     string board, row;
     int move, score;
     
-    ifstream file("4x4_dictionary.txt");
+    ifstream file("4x4_dict.txt");
     if (file.is_open()) {
         while (getline(file, row)) {
             if (file >> board >> move >> score) {
@@ -70,9 +70,9 @@ vector<int> get_possible_moves(const vector<int>& gameboard) {
     return possible_moves;
 }
 
-void store(map<string, vector<int>>& table, string board, int alpha, int beta, int best_score, int depth) {
+void store(map<string, vector<int>>& table, string board, int alpha_org, int beta, int best_score, int depth) {
     string flag;
-    if (best_score <= alpha) {
+    if (best_score <= alpha_org) {
         flag = "UPPERCASE";
     } else if (best_score >= beta) {
         flag = "LOWERCASE";
@@ -97,30 +97,33 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta, m
     if (TT.find(board_str) != TT.end()) {
         // Get TT data
         vector<int> tt_entry = TT[board_str];
-        int tt_alpha = tt_entry[0];
-        int tt_beta = tt_entry[1];
+        int tt_value = tt_entry[0];
+        int tt_depth = tt_entry[1];
         int tt_flag = tt_entry[2];
+        
+        if (tt_depth >= depth) {
 
-        if (tt_flag == 0) {
-            return tt_alpha;
-        } else if (tt_flag == -1) {
-            alpha = max(alpha, tt_beta);
-        } else if (tt_flag == 1) {
-            beta = min(beta, tt_alpha);
-        }
+            if (tt_flag == 0) {
+                return tt_value;
+            } else if (tt_flag == -1) {
+                alpha = max(alpha, tt_value);
+            } else if (tt_flag == 1) {
+                beta = min(beta, tt_value);
+            }
 
-        if (alpha >= beta) {
-            return tt_alpha;
+            if (alpha >= beta) {
+                return tt_value;
+            }
         }
     }
     
     // Terminal node checks
     if (check_win(gameboard, player)) {
-        return 1000 + depth;
+        return depth;
     }
     
     if (check_win(gameboard, -player)) {
-        return -1000 - depth;
+        return -depth;
     }
     
     if (find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
@@ -131,14 +134,14 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta, m
         return 0;
     }
     
-    int best_score = -1000;
+    int best_score = -10000; // Initial best score
     int score;
     
     for (int move : get_possible_moves(gameboard)) {
         gameboard[move] = player;
         score = -negamax(gameboard, -player, depth-1, -beta, -alpha, TT);
         gameboard[move] = 0;
-        
+                
         if (score > best_score) {
             best_score = score;
         }
@@ -157,9 +160,9 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta, m
 
 tuple<int, int> solve(vector<int> gameboard, int player, int depth) {
     int best_move, score;
-    int best_score = -1000;
-    int alpha = -1000; // Initial alpha value
-    int beta = 1000;   // Initial beta value
+    int best_score = -10000; // Initial best score
+    int alpha = -10000; // Initial alpha value
+    int beta = 10000;   // Initial beta value
     
     map<string, vector<int>> TT;
     
@@ -167,14 +170,14 @@ tuple<int, int> solve(vector<int> gameboard, int player, int depth) {
         gameboard[move] = player;
         score = -negamax(gameboard, -player, depth-1, -beta, -alpha, TT);
         gameboard[move] = 0;
-        
+                
         if (score > best_score) {
             best_score = score;
             best_move = move;
         }
         
         alpha = max(alpha, score);
-        
+                
         if (alpha >= beta) {
             break;
         }
@@ -253,6 +256,7 @@ int main() {
             
             // Get the AI move
             auto start_time = chrono::high_resolution_clock::now(); // Start measuring time
+            
             if (moves_made <= 4) {
                 string board_str;
                 for (int i : gameboard) {
