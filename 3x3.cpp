@@ -2,11 +2,11 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include <cstdlib>
 #include <algorithm>
 #include <chrono>
 #include <tuple>
 #include <map>
+#include <fstream>
 
 using namespace std;
 
@@ -47,9 +47,9 @@ vector<int> get_possible_moves(const vector<int>& gameboard) {
     return possible_moves;
 }
 
-void store(map<string, vector<int>>& table, string board, int alpha, int beta, int best_score, int depth) {
+void store(map<string, vector<int>>& table, string board, int alpha_org, int beta, int best_score, int depth) {
     string flag;
-    if (best_score <= alpha) {
+    if (best_score <= alpha_org) {
         flag = "UPPERCASE";
     } else if (best_score >= beta) {
         flag = "LOWERCASE";
@@ -74,49 +74,51 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta, m
     if (TT.find(board_str) != TT.end()) {
         // Get TT data
         vector<int> tt_entry = TT[board_str];
-        int tt_alpha = tt_entry[0];
-        int tt_beta = tt_entry[1];
+        int tt_value = tt_entry[0];
+        int tt_depth = tt_entry[1];
         int tt_flag = tt_entry[2];
+        
+        if (tt_depth >= depth) {
 
-        if (tt_flag == 0) {
-            return tt_alpha;
-        } else if (tt_flag == -1) {
-            alpha = max(alpha, tt_beta);
-        } else if (tt_flag == 1) {
-            beta = min(beta, tt_alpha);
-        }
+            if (tt_flag == 0) {
+                return tt_value;
+            } else if (tt_flag == -1) {
+                alpha = max(alpha, tt_value);
+            } else if (tt_flag == 1) {
+                beta = min(beta, tt_value);
+            }
 
-        if (alpha >= beta) {
-            return tt_alpha;
+            if (alpha >= beta) {
+                return tt_value;
+            }
         }
     }
     
     // Terminal node checks
     if (check_win(gameboard, player)) {
-        return 1000 + depth; // Winning sooner is better
+        return depth;
     }
     
     if (check_win(gameboard, -player)) {
-        return -1000 - depth; // Try to lose as late in the game as possible
+        return -depth;
     }
     
-    if (std::find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
-        return 0; // Draw game
+    if (find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
+        return 0;
     }
     
     if (depth == 0) {
-        return 0; // We've searched as far as the depth will let us. Just return 0 because we don't actually know how good the node is.
+        return 0;
     }
     
-    // If not a terminal node, continue recursively searching the game tree
-    int best_score = -1000;
+    int best_score = -10000; // Initial best score
     int score;
     
     for (int move : get_possible_moves(gameboard)) {
         gameboard[move] = player;
         score = -negamax(gameboard, -player, depth-1, -beta, -alpha, TT);
         gameboard[move] = 0;
-        
+                
         if (score > best_score) {
             best_score = score;
         }
@@ -135,9 +137,9 @@ int negamax(vector<int> gameboard, int player, int depth, int alpha, int beta, m
 
 tuple<int, int> solve(vector<int> gameboard, int player, int depth) {
     int best_move, score;
-    int best_score = -1000;
-    int alpha = -1000; // Initial alpha value
-    int beta = 1000;   // Initial beta value
+    int best_score = -10000; // Initial best score
+    int alpha = -10000; // Initial alpha value
+    int beta = 10000;   // Initial beta value
     
     map<string, vector<int>> TT;
     
@@ -145,14 +147,14 @@ tuple<int, int> solve(vector<int> gameboard, int player, int depth) {
         gameboard[move] = player;
         score = -negamax(gameboard, -player, depth-1, -beta, -alpha, TT);
         gameboard[move] = 0;
-        
+                
         if (score > best_score) {
             best_score = score;
             best_move = move;
         }
         
         alpha = max(alpha, score);
-        
+                
         if (alpha >= beta) {
             break;
         }
@@ -168,8 +170,8 @@ int main() {
     
     cout << "Would you like to be player 1 or 2 (enter 'exit' to quit): ";
     while (true) {
-        cin >> input; // Get player input
-        transform(input.begin(), input.end(), input.begin(), ::tolower); // Make it lowercase for checks
+        cin >> input;
+        transform(input.begin(), input.end(), input.begin(), ::tolower);
         if (input == "1") {
             turn = 1;
             break;
@@ -188,8 +190,6 @@ int main() {
         cout << endl;
         
         if (turn == 1) {
-
-            // Get player input
             while (true) {
                 cout << "Enter move (1-9, or 'exit' to quit): ";
                 cin >> input;
@@ -216,7 +216,7 @@ int main() {
                 exit(0);
             }
 
-            if (std::find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
+            if (find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
                 display_board(gameboard);
                 cout << endl << "Game was a draw." << endl;
                 exit(0);
@@ -227,14 +227,15 @@ int main() {
         } else { // Turn = -1
             
             // Get the AI move
-            auto start_time = std::chrono::high_resolution_clock::now(); // Start measuring time
-            tuple<int,int> result = solve(gameboard, -1, 9);
+            auto start_time = chrono::high_resolution_clock::now(); // Start measuring time
+            
+            tuple<int, int> result = solve(gameboard, -1, 9);
             move = get<0>(result);
             score = get<1>(result);
             
             gameboard[move] = -1;
-            auto end_time = std::chrono::high_resolution_clock::now();  // Stop measuring time
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+            auto end_time = chrono::high_resolution_clock::now();  // Stop measuring time
+            auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
             cout << "AI evaluation: " << score << endl;
             cout << "AI move took " << duration.count() << " milliseconds to calculate." << endl << endl; // Show time to calculate move
 
@@ -244,7 +245,7 @@ int main() {
                 exit(0);
             }
 
-            if (std::find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
+            if (find(gameboard.begin(), gameboard.end(), 0) == gameboard.end()) {
                 display_board(gameboard);
                 cout << endl << "Game was a draw." << endl;
                 exit(0);
