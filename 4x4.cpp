@@ -177,10 +177,6 @@ tuple<int, int> solve(vector<int> gameboard, int player, int depth) {
         }
         
         alpha = max(alpha, score);
-                
-        if (alpha >= beta) {
-            break;
-        }
     }
     
     return make_tuple(best_move, best_score);
